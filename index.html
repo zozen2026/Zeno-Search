@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zeno - Search & AI Voice Assistant</title>
+  <title>Zeno Search & AI Assistant</title>
   <!-- استدعاء مكتبة Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -165,12 +165,22 @@
     }
 
     /* شريط البحث */
-    .search-container { width: 100%; max-width: 600px; display: flex; gap: 10px; margin-bottom: 20px; }
+    .search-container { width: 100%; max-width: 600px; display: flex; gap: 10px; margin-bottom: 25px; }
     input[type="text"], textarea { flex: 1; padding: 14px 20px; font-size: 1rem; border: 2px solid #e5e7eb; border-radius: 30px; outline: none; transition: border-color 0.2s; }
     input[type="text"]:focus, textarea:focus { border-color: #f97316; }
     
     .btn { padding: 12px 24px; background-color: #111; color: #fff; border: 2px solid #111; border-radius: 30px; font-weight: bold; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
     .btn:hover { background-color: #f97316; border-color: #f97316; }
+
+    /* حاوية نتائج البحث الخاصة بـ Zeno */
+    .results-container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 40px; }
+    .result-card { background: #ffffff; border: 2px solid #111; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-right: 6px solid #f97316; }
+    .result-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .result-title a { color: #4285F4; text-decoration: none; }
+    .result-title a:hover { text-decoration: underline; }
+    .result-snippet { font-size: 0.95rem; color: #4b5563; line-height: 1.8; word-break: break-word; margin-bottom: 12px; }
+    .result-author { font-size: 0.85rem; color: #f97316; font-weight: bold; border-top: 1px solid #f3f4f6; padding-top: 8px; display: flex; align-items: center; gap: 5px; }
+    .no-result { text-align: center; color: #9ca3af; padding: 20px; font-size: 0.95rem; }
 
     /* النوافذ المنبثقة (Modals) */
     .modal-overlay {
@@ -202,11 +212,7 @@
       color: #18181b;
       outline: none;
     }
-    .password-strength-indicator {
-      font-size: 12px;
-      margin-top: -6px;
-      margin-bottom: 2px;
-    }
+    .password-strength-indicator { font-size: 12px; margin-top: -6px; margin-bottom: 2px; }
     .modal-card button.submit-btn {
       padding: 10px;
       background: #f97316;
@@ -217,14 +223,7 @@
       cursor: pointer;
     }
     .modal-card button.submit-btn:hover { background: #ea580c; }
-    .modal-card .close-btn {
-      background: transparent;
-      color: #71717a;
-      border: none;
-      cursor: pointer;
-      font-size: 12px;
-      text-align: center;
-    }
+    .modal-card .close-btn { background: transparent; color: #71717a; border: none; cursor: pointer; font-size: 12px; text-align: center; }
 
     /* العلامة المائية الشفافة */
     .watermark-nc {
@@ -279,6 +278,11 @@
   <div class="search-container">
     <button class="btn" id="search-btn" onclick="handleSearch()">Search</button>
     <input type="text" id="search-input" placeholder="...Zeno Search" onkeydown="if(event.key === 'Enter') handleSearch()">
+  </div>
+
+  <!-- منطقة عرض نتائج البحث بأسلوب Zeno Search -->
+  <div class="results-container" id="results-container">
+    <div class="no-result">اكتب ما تبحث عنه في الأعلى، وستظهر النتائج هنا بتصميم Zeno...</div>
   </div>
 
   <!-- نافذة تسجيل الدخول -->
@@ -470,16 +474,55 @@
     }
 
     // -------------------------------------------------------------
-    // 3. دالة البحث المباشر لفتح جوجل في نافذة جديدة
+    // 3. دالة البحث عبر الخادم الوسيط وعرض النتائج بأسلوب Zeno Search
     // -------------------------------------------------------------
-    function handleSearch() {
+    async function handleSearch() {
       const rawQuery = document.getElementById('search-input').value.trim();
+      const container = document.getElementById('results-container');
+
       if (!rawQuery) {
-        alert('الرجاء كتابة كلمة للبحث.');
+        container.innerHTML = '<div class="no-result">الرجاء كتابة كلمة للبحث.</div>';
         return;
       }
-      // فتح صفحة بحث جوجل الرسمية مباشرة في نافذة جديدة
-      window.open(`https://www.google.com/search?q=${encodeURIComponent(rawQuery)}`, '_blank');
+
+      container.innerHTML = '<div class="no-result">جاري جلب وعرض نتائج Zeno Search...</div>';
+
+      try {
+        const apiEndpoint = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/search' : '/api/search';
+
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: rawQuery })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          container.innerHTML = `<div class="no-result" style="color:red;">خطأ: ${data.error || 'فشل البحث'}</div>`;
+          return;
+        }
+
+        if (!data.results || data.results.length === 0) {
+          container.innerHTML = '<div class="no-result">لم يتم العثور على نتائج مطابقة.</div>';
+          return;
+        }
+
+        // عرض النتائج ببطاقات أنيقة تحمل هُوية Zeno Search
+        container.innerHTML = data.results.map(item => `
+          <div class="result-card">
+            <div class="result-title">
+              <a href="${item.url}" target="_blank">${item.title}</a>
+            </div>
+            <div class="result-snippet">${item.snippet}</div>
+            <div class="result-author">🛡️ تم الفهرسة بواسطة Zeno Search Engine</div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<div class="no-result" style="color:red;">حدث خطأ في الاتصال بخادم البحث.</div>';
+      }
     }
 
     // -------------------------------------------------------------

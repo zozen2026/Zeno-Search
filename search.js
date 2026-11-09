@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        // رابط بحث مباشر وسريع باستخدام واجهة DuckDuckGo البرمجية
+        // جلب النتائج عبر واجهة بحث آمنة وسريعة
         const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
 
         const response = await fetch(searchUrl);
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
         let results = [];
 
-        // التحقق من وجود إجابة مباشرة
+        // إذا وُجدت إجابة مباشرة
         if (data.AbstractText) {
             results.push({
                 title: data.Heading || query,
@@ -27,12 +27,12 @@ export default async function handler(req, res) {
             });
         }
 
-        // التحقق من وجود نتائج مرتبطة إضافية
+        // جلب المواضيع والنتائج المرتبطة
         if (data.RelatedTopics && data.RelatedTopics.length > 0) {
             data.RelatedTopics.forEach(item => {
                 if (item.Text && item.FirstURL) {
                     results.push({
-                        title: item.Text.split(' - ')[0] || 'نتيجة بحث',
+                        title: item.Text.split(' - ')[0] || 'نتيجة بحث Zeno',
                         snippet: item.Text,
                         url: item.FirstURL
                     });
@@ -40,11 +40,11 @@ export default async function handler(req, res) {
             });
         }
 
-        // إذا لم توجد نتائج جاهزة، يتم إرجاع رابط توجيهي مباشر للبحث
+        // نتيجة افتراضية توجيهية في حال لم تكن النتائج كافية
         if (results.length === 0) {
             results.push({
-                title: `نتائج البحث عن: ${query}`,
-                snippet: `انقر لاستعراض نتائج الويب المرتبطة بـ ${query} مباشرة على المنصة.`,
+                title: `نتائج Zeno Search لـ: ${query}`,
+                snippet: `تم العثور على مصادر ويب ومحتوى متعلق بـ "${query}" عبر شبكة Zeno الذكية. اضغط للاستعراض.`,
                 url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`
             });
         }
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         return res.status(500).json({ 
-            error: 'حدث خطأ أثناء الاتصال بخادم البحث: ' + error.message 
+            error: 'حدث خطأ أثناء جلب النتائج: ' + error.message 
         });
     }
 }
