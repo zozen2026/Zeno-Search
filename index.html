@@ -172,32 +172,6 @@
     .btn { padding: 12px 24px; background-color: #111; color: #fff; border: 2px solid #111; border-radius: 30px; font-weight: bold; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
     .btn:hover { background-color: #f97316; border-color: #f97316; }
 
-    .add-toggle-btn { background: transparent; color: #4285F4; border: 1px dashed #4285F4; margin-bottom: 25px; }
-    .add-toggle-btn:hover { color: #fff; border-color: #f97316; background: #f97316; }
-
-    .add-box { display: none; width: 100%; max-width: 600px; background: #f8fafc; padding: 20px; border-radius: 16px; border: 2px solid #f97316; margin-bottom: 25px; flex-direction: column; gap: 12px; }
-    .add-box input, .add-box textarea { width: 100%; padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 12px; outline: none; font-size: 0.95rem; }
-    .add-box input:focus, .add-box textarea:focus { border-color: #f97316; }
-    .add-box textarea { resize: vertical; min-height: 80px; }
-
-    .results-container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 40px; }
-    .result-card { background: #ffffff; border: 2px solid #111; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-right: 6px solid #f97316; }
-    .result-title { font-size: 1.1rem; font-weight: 700; color: #111; margin-bottom: 8px; }
-    .result-snippet { font-size: 0.95rem; color: #4b5563; line-height: 1.8; white-space: pre-wrap; word-break: break-word; margin-bottom: 12px; }
-    
-    .result-author {
-      font-size: 0.85rem;
-      color: #f97316;
-      font-weight: bold;
-      border-top: 1px solid #f3f4f6;
-      padding-top: 8px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .no-result { text-align: center; color: #9ca3af; padding: 20px; }
-
     /* النوافذ المنبثقة (Modals) */
     .modal-overlay {
       display: none;
@@ -305,19 +279,6 @@
   <div class="search-container">
     <button class="btn" id="search-btn" onclick="handleSearch()">Search</button>
     <input type="text" id="search-input" placeholder="...Zeno Search" onkeydown="if(event.key === 'Enter') handleSearch()">
-  </div>
-
-  <button class="btn add-toggle-btn" onclick="toggleAddBox()">Add new information +</button>
-
-  <div class="add-box" id="add-box">
-    <input type="text" id="new-category" placeholder="التصنيف (category)">
-    <input type="text" id="new-title" placeholder="السؤال أو العنوان (title)">
-    <textarea id="new-snippet" placeholder="الإجابة أو التفاصيل (snippet)"></textarea>
-    <button class="btn" onclick="addInformation()">حفظ في قاعدة البيانات</button>
-  </div>
-
-  <div class="results-container" id="results-container">
-    <div class="no-result">اكتب سؤالك في شريط البحث وابدأ الاستكشاف عبر الويب أو المنصة...</div>
   </div>
 
   <!-- نافذة تسجيل الدخول -->
@@ -508,100 +469,21 @@
       }
     }
 
-    function toggleAddBox() {
-      const box = document.getElementById('add-box');
-      box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-    }
-
     // -------------------------------------------------------------
-    // 3. دالة البحث عبر الخادم الوسيط (api/search.js) لجلب نتائج الويب
+    // 3. دالة البحث المباشر لفتح جوجل في نافذة جديدة
     // -------------------------------------------------------------
-    async function handleSearch() {
+    function handleSearch() {
       const rawQuery = document.getElementById('search-input').value.trim();
-      const container = document.getElementById('results-container');
-
       if (!rawQuery) {
-        container.innerHTML = '<div class="no-result">الرجاء كتابة كلمة للبحث.</div>';
+        alert('الرجاء كتابة كلمة للبحث.');
         return;
       }
-
-      container.innerHTML = '<div class="no-result">جاري جلب المعلومات من الويب عبر Zeno Server...</div>';
-
-      try {
-        const apiEndpoint = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/search' : '/api/search';
-
-        const response = await fetch(apiEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: rawQuery })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          container.innerHTML = `<div class="no-result" style="color:red;">خطأ: ${data.error || 'فشل عملية البحث'}</div>`;
-          return;
-        }
-
-        if (!data.results || data.results.length === 0) {
-          container.innerHTML = '<div class="no-result">لم يتم العثور على نتائج مطابقة.</div>';
-          return;
-        }
-
-        container.innerHTML = data.results.map(item => `
-          <div class="result-card">
-            <div class="result-title">
-              <a href="${item.url}" target="_blank" style="color: #4285F4; text-decoration: none;">${item.title}</a>
-            </div>
-            <div class="result-snippet">${item.snippet}</div>
-            <div class="result-author">🌐 مصدر الويب: <a href="${item.url}" target="_blank" style="color: #f97316; text-decoration: none;">زيارة الرابط الأصلي</a></div>
-          </div>
-        `).join('');
-
-      } catch (err) {
-        console.error(err);
-        container.innerHTML = '<div class="no-result" style="color:red;">حدث خطأ في الاتصال بخادم البحث.</div>';
-      }
+      // فتح صفحة بحث جوجل الرسمية مباشرة في نافذة جديدة
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(rawQuery)}`, '_blank');
     }
 
     // -------------------------------------------------------------
-    // 4. إضافة معلومات جديدة للقاعدة (Supabase)
-    // -------------------------------------------------------------
-    async function addInformation() {
-      const category = document.getElementById('new-category').value.trim();
-      const title = document.getElementById('new-title').value.trim();
-      const snippet = document.getElementById('new-snippet').value;
-
-      if (!title || !snippet) {
-        alert('الرجاء إدخال العنوان والتفاصيل.');
-        return;
-      }
-
-      const currentUser = JSON.parse(localStorage.getItem('zeno_current_user') || '{}');
-      const authorName = currentUser.account_name || currentUser.username || 'زائر';
-
-      const { error } = await supabaseClient
-        .from('information')
-        .insert([{
-          category,
-          title,
-          snippet,
-          author: authorName
-        }]);
-
-      if (error) {
-        alert('حدث خطأ أثناء الإضافة: ' + error.message);
-      } else {
-        alert('تمت إضافة المقال ونشره بنجاح!');
-        document.getElementById('new-category').value = '';
-        document.getElementById('new-title').value = '';
-        document.getElementById('new-snippet').value = '';
-        toggleAddBox();
-      }
-    }
-
-    // -------------------------------------------------------------
-    // 5. تشغيل Zeno AI الصوتي (عبر api/chat.js)
+    // 4. تشغيل Zeno AI الصوتي (عبر api/chat.js)
     // -------------------------------------------------------------
     const orb = document.getElementById('aiOrb');
     const aiStatus = document.getElementById('aiStatus');
@@ -749,7 +631,7 @@
                 try { recognition.start(); } catch(e) {}
             } else {
                 orb.className = "orb"; 
-                aiStatus.innerText = "اضغط على الكرة وابدأ الحديث...";
+                aiStatus.innerText = "اضغط على الكرة وتحدث...";
             }
         };
 
