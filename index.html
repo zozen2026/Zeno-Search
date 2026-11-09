@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zeno - AI Voice Assistant</title>
+  <title>Zeno - Search & AI Voice Assistant</title>
   <!-- استدعاء مكتبة Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -14,9 +14,8 @@
       display: flex; 
       flex-direction: column; 
       align-items: center; 
-      justify-content: center;
       min-height: 100vh; 
-      padding: 20px; 
+      padding: 40px 20px; 
       position: relative; 
     }
 
@@ -114,8 +113,9 @@
     .logo { 
       font-size: 3.5rem; 
       font-weight: 900; 
-      margin-bottom: 25px; 
+      margin-bottom: 20px; 
       letter-spacing: -1px; 
+      margin-top: 20px; 
       color: #4285F4;
     }
     .logo span.o-orange { color: #f97316; }
@@ -125,32 +125,30 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
-      max-width: 500px;
-      text-align: center;
-      margin-bottom: 25px;
+      gap: 12px;
+      margin-bottom: 20px;
     }
     .orb {
-      width: 85px;
-      height: 85px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb);
-      box-shadow: 0 0 25px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
       cursor: pointer;
       transition: all 0.4s ease;
     }
     .orb:hover {
       transform: scale(1.1);
-      box-shadow: 0 0 35px rgba(249, 115, 22, 0.6);
+      box-shadow: 0 0 30px rgba(249, 115, 22, 0.6);
     }
     .orb.listening {
       background: radial-gradient(circle at 30% 30%, #fdba74, #f97316);
-      box-shadow: 0 0 40px #f97316, inset 0 0 15px #fff;
+      box-shadow: 0 0 35px #f97316, inset 0 0 15px #fff;
       animation: pulse-orb 1.5s infinite;
     }
     .orb.speaking {
       background: radial-gradient(circle at 30% 30%, #4ade80, #16a34a);
-      box-shadow: 0 0 40px #22c55e, inset 0 0 15px #fff;
+      box-shadow: 0 0 35px #22c55e, inset 0 0 15px #fff;
       animation: pulse-orb 0.8s infinite;
     }
     @keyframes pulse-orb {
@@ -158,32 +156,47 @@
       50% { transform: scale(1.08); }
       100% { transform: scale(1); }
     }
-
-    /* الإرشادات بثلاث لغات */
-    .ai-instructions {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      padding: 16px 24px;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      width: 100%;
-    }
-    .inst-ar { font-size: 1.05rem; font-weight: bold; color: #f97316; }
-    .inst-en { font-size: 0.9rem; color: #475569; }
-    .inst-ru { font-size: 0.9rem; color: #475569; }
-
     .ai-status-text {
-      font-size: 0.95rem;
-      color: #0f172a;
-      font-weight: 600;
-      min-height: 25px;
+      font-size: 0.85rem;
+      color: #52525b;
+      font-weight: bold;
+      min-height: 20px;
+      text-align: center;
     }
 
-    .btn { padding: 10px 20px; background-color: #111; color: #fff; border: 2px solid #111; border-radius: 20px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    /* شريط البحث */
+    .search-container { width: 100%; max-width: 600px; display: flex; gap: 10px; margin-bottom: 20px; }
+    input[type="text"], textarea { flex: 1; padding: 14px 20px; font-size: 1rem; border: 2px solid #e5e7eb; border-radius: 30px; outline: none; transition: border-color 0.2s; }
+    input[type="text"]:focus, textarea:focus { border-color: #f97316; }
+    
+    .btn { padding: 12px 24px; background-color: #111; color: #fff; border: 2px solid #111; border-radius: 30px; font-weight: bold; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
     .btn:hover { background-color: #f97316; border-color: #f97316; }
+
+    .add-toggle-btn { background: transparent; color: #4285F4; border: 1px dashed #4285F4; margin-bottom: 25px; }
+    .add-toggle-btn:hover { color: #fff; border-color: #f97316; background: #f97316; }
+
+    .add-box { display: none; width: 100%; max-width: 600px; background: #f8fafc; padding: 20px; border-radius: 16px; border: 2px solid #f97316; margin-bottom: 25px; flex-direction: column; gap: 12px; }
+    .add-box input, .add-box textarea { width: 100%; padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 12px; outline: none; font-size: 0.95rem; }
+    .add-box input:focus, .add-box textarea:focus { border-color: #f97316; }
+    .add-box textarea { resize: vertical; min-height: 80px; }
+
+    .results-container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 40px; }
+    .result-card { background: #ffffff; border: 2px solid #111; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-right: 6px solid #f97316; }
+    .result-title { font-size: 1.1rem; font-weight: 700; color: #111; margin-bottom: 8px; }
+    .result-snippet { font-size: 0.95rem; color: #4b5563; line-height: 1.8; white-space: pre-wrap; word-break: break-word; margin-bottom: 12px; }
+    
+    .result-author {
+      font-size: 0.85rem;
+      color: #f97316;
+      font-weight: bold;
+      border-top: 1px solid #f3f4f6;
+      padding-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .no-result { text-align: center; color: #9ca3af; padding: 20px; }
 
     /* النوافذ المنبثقة (Modals) */
     .modal-overlay {
@@ -277,22 +290,34 @@
     </div>
   </div>
 
-  <!-- شعار Zeno مع حرف o البرتقالي -->
+  <!-- شعار Zeno مع الـ o البرتقالي -->
   <div class="logo">
     Zen<span class="o-orange">o</span>
   </div>
 
-  <!-- قسم Zeno AI الصوتي والإرشادات ثلاثية اللغات -->
+  <!-- قسم Zeno AI الصوتي والكرة النيون -->
   <div class="zeno-ai-section">
     <div class="orb" id="aiOrb" onclick="startZenoListening()" title="اضغط وتحدث مع Zeno AI"></div>
-    
-    <div class="ai-instructions">
-      <div class="inst-ar">اضغط هنا لكي تتكلم مع الذكاء الاصطناعي</div>
-      <div class="inst-en">Click here to speak with Artificial Intelligence</div>
-      <div class="inst-ru">Нажмите здесь, чтобы поговорить с искусственным интеллектом</div>
-    </div>
+    <div class="ai-status-text" id="aiStatus">اضغط على الكرة وتحدث...</div>
+  </div>
 
-    <div class="ai-status-text" id="aiStatus">اضغط على الكرة وابدأ الحديث...</div>
+  <!-- شريط البحث الأساسي -->
+  <div class="search-container">
+    <button class="btn" id="search-btn" onclick="handleSearch()">Search</button>
+    <input type="text" id="search-input" placeholder="...Zeno Search" onkeydown="if(event.key === 'Enter') handleSearch()">
+  </div>
+
+  <button class="btn add-toggle-btn" onclick="toggleAddBox()">Add new information +</button>
+
+  <div class="add-box" id="add-box">
+    <input type="text" id="new-category" placeholder="التصنيف (category)">
+    <input type="text" id="new-title" placeholder="السؤال أو العنوان (title)">
+    <textarea id="new-snippet" placeholder="الإجابة أو التفاصيل (snippet)"></textarea>
+    <button class="btn" onclick="addInformation()">حفظ في قاعدة البيانات</button>
+  </div>
+
+  <div class="results-container" id="results-container">
+    <div class="no-result">اكتب سؤالك في شريط البحث وابدأ الاستكشاف...</div>
   </div>
 
   <!-- نافذة تسجيل الدخول -->
@@ -483,8 +508,110 @@
       }
     }
 
+    function toggleAddBox() {
+      const box = document.getElementById('add-box');
+      box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+    }
+
     // -------------------------------------------------------------
-    // 3. تشغيل Zeno AI الصوتي المتفاعل المباشر
+    // 3. دالة البحث المباشر في قاعدة البيانات
+    // -------------------------------------------------------------
+    async function handleSearch() {
+      const rawQuery = document.getElementById('search-input').value.trim();
+      const container = document.getElementById('results-container');
+
+      if (!rawQuery) {
+        container.innerHTML = '<div class="no-result">الرجاء كتابة كلمة للبحث.</div>';
+        return;
+      }
+
+      container.innerHTML = '<div class="no-result">جاري البحث...</div>';
+
+      const stopWords = ['متى', 'ما', 'هل', 'من', 'أين', 'كيف', 'في', 'على', 'عن', 'الذي', 'التي', 'الى', 'و'];
+      const words = rawQuery.toLowerCase()
+                            .replace(/[؟,._?!]/g, '')
+                            .split(/\s+/)
+                            .map(w => w.trim())
+                            .filter(w => w.length >= 2 && !stopWords.includes(w));
+
+      const searchTerms = words.length > 0 ? words : [rawQuery.toLowerCase()];
+
+      const conditions = searchTerms.map(word => 
+        `title.ilike.%${word}%,snippet.ilike.%${word}%,content.ilike.%${word}%`
+      ).join(',');
+
+      const { data, error } = await supabaseClient
+        .from('information')
+        .select('*')
+        .or(conditions);
+
+      if (error) {
+        container.innerHTML = `<div class="no-result" style="color:red;">حدث خطأ: ${error.message}</div>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        container.innerHTML = '<div class="no-result">لم يتم العثور على مقالات تحتوي على هذه الكلمة.</div>';
+        return;
+      }
+
+      const exactMatches = data.filter(item => {
+        const textBlob = `${item.title || ''} ${item.snippet || ''} ${item.content || ''}`.toLowerCase();
+        return searchTerms.some(term => textBlob.includes(term));
+      });
+
+      if (exactMatches.length === 0) {
+        container.innerHTML = '<div class="no-result">لم يتم العثور على نتائج مطابقة للكلمة.</div>';
+        return;
+      }
+
+      container.innerHTML = exactMatches.map(item => `
+        <div class="result-card">
+          <div class="result-title">${item.title || 'بدون عنوان'}</div>
+          <div class="result-snippet">${item.snippet || item.content || ''}</div>
+          <div class="result-author">✍️ كاتب المعلومة: ${item.author || 'Zeno User'}</div>
+        </div>
+      `).join('');
+    }
+
+    // -------------------------------------------------------------
+    // 4. إضافة معلومات جديدة للقاعدة
+    // -------------------------------------------------------------
+    async function addInformation() {
+      const category = document.getElementById('new-category').value.trim();
+      const title = document.getElementById('new-title').value.trim();
+      const snippet = document.getElementById('new-snippet').value;
+
+      if (!title || !snippet) {
+        alert('الرجاء إدخال العنوان والتفاصيل.');
+        return;
+      }
+
+      const currentUser = JSON.parse(localStorage.getItem('zeno_current_user') || '{}');
+      const authorName = currentUser.account_name || currentUser.username || 'زائر';
+
+      const { error } = await supabaseClient
+        .from('information')
+        .insert([{
+          category,
+          title,
+          snippet,
+          author: authorName
+        }]);
+
+      if (error) {
+        alert('حدث خطأ أثناء الإضافة: ' + error.message);
+      } else {
+        alert('تمت إضافة المقال ونشره بنجاح!');
+        document.getElementById('new-category').value = '';
+        document.getElementById('new-title').value = '';
+        document.getElementById('new-snippet').value = '';
+        toggleAddBox();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 5. تشغيل Zeno AI الصوتي (ذاكرة المحادثة + عزل الصوت + النطق)
     // -------------------------------------------------------------
     const orb = document.getElementById('aiOrb');
     const aiStatus = document.getElementById('aiStatus');
@@ -543,7 +670,7 @@
                 try { recognition.start(); } catch (e) {}
             } else if (!isAISpeaking && !isListening) {
                 orb.className = "orb";
-                aiStatus.innerText = "اضغط على الكرة وابدأ الحديث...";
+                aiStatus.innerText = "اضغط على الكرة وتحدث...";
             }
         };
     }
@@ -570,7 +697,6 @@
         aiStatus.innerText = "Zeno يفكر في الإجابة...";
 
         try {
-            // الاتصال بالخادم الوسيط على Vercel أو محلياً
             const apiEndpoint = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/chat' : '/api/chat';
 
             const response = await fetch(apiEndpoint, {
@@ -602,7 +728,7 @@
 
     function cleanTextForSpeech(text) {
         return text
-            .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]|[\uD800-\uDBFF][\uDC00-\uDFFF])/g, '')
+            .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]|\uD800-\uDBFF[\uDC00-\uDFFF])/g, '')
             .replace(/[#_*~`@$%^&+=<>|\\/[\]{}()]/g, ' ')
             .replace(/-/g, ' ')
             .replace(/\s+/g, ' ')
@@ -633,7 +759,7 @@
                 try { recognition.start(); } catch(e) {}
             } else {
                 orb.className = "orb"; 
-                aiStatus.innerText = "اضغط على الكرة وابدأ الحديث...";
+                aiStatus.innerText = "اضغط على الكرة وتحدث...";
             }
         };
 
