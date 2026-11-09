@@ -317,7 +317,7 @@
   </div>
 
   <div class="results-container" id="results-container">
-    <div class="no-result">اكتب سؤالك في شريط البحث وابدأ الاستكشاف...</div>
+    <div class="no-result">اكتب سؤالك في شريط البحث وابدأ الاستكشاف عبر الويب أو المنصة...</div>
   </div>
 
   <!-- نافذة تسجيل الدخول -->
@@ -514,7 +514,7 @@
     }
 
     // -------------------------------------------------------------
-    // 3. دالة البحث المباشر في قاعدة البيانات
+    // 3. دالة البحث عبر الخادم الوسيط (api/search.js) لجلب نتائج الويب
     // -------------------------------------------------------------
     async function handleSearch() {
       const rawQuery = document.getElementById('search-input').value.trim();
@@ -525,57 +525,47 @@
         return;
       }
 
-      container.innerHTML = '<div class="no-result">جاري البحث...</div>';
+      container.innerHTML = '<div class="no-result">جاري جلب المعلومات من الويب عبر Zeno Server...</div>';
 
-      const stopWords = ['متى', 'ما', 'هل', 'من', 'أين', 'كيف', 'في', 'على', 'عن', 'الذي', 'التي', 'الى', 'و'];
-      const words = rawQuery.toLowerCase()
-                            .replace(/[؟,._?!]/g, '')
-                            .split(/\s+/)
-                            .map(w => w.trim())
-                            .filter(w => w.length >= 2 && !stopWords.includes(w));
+      try {
+        const apiEndpoint = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/search' : '/api/search';
 
-      const searchTerms = words.length > 0 ? words : [rawQuery.toLowerCase()];
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: rawQuery })
+        });
 
-      const conditions = searchTerms.map(word => 
-        `title.ilike.%${word}%,snippet.ilike.%${word}%,content.ilike.%${word}%`
-      ).join(',');
+        const data = await response.json();
 
-      const { data, error } = await supabaseClient
-        .from('information')
-        .select('*')
-        .or(conditions);
+        if (!response.ok) {
+          container.innerHTML = `<div class="no-result" style="color:red;">خطأ: ${data.error || 'فشل عملية البحث'}</div>`;
+          return;
+        }
 
-      if (error) {
-        container.innerHTML = `<div class="no-result" style="color:red;">حدث خطأ: ${error.message}</div>`;
-        return;
+        if (!data.results || data.results.length === 0) {
+          container.innerHTML = '<div class="no-result">لم يتم العثور على نتائج مطابقة.</div>';
+          return;
+        }
+
+        container.innerHTML = data.results.map(item => `
+          <div class="result-card">
+            <div class="result-title">
+              <a href="${item.url}" target="_blank" style="color: #4285F4; text-decoration: none;">${item.title}</a>
+            </div>
+            <div class="result-snippet">${item.snippet}</div>
+            <div class="result-author">🌐 مصدر الويب: <a href="${item.url}" target="_blank" style="color: #f97316; text-decoration: none;">زيارة الرابط الأصلي</a></div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<div class="no-result" style="color:red;">حدث خطأ في الاتصال بخادم البحث.</div>';
       }
-
-      if (!data || data.length === 0) {
-        container.innerHTML = '<div class="no-result">لم يتم العثور على مقالات تحتوي على هذه الكلمة.</div>';
-        return;
-      }
-
-      const exactMatches = data.filter(item => {
-        const textBlob = `${item.title || ''} ${item.snippet || ''} ${item.content || ''}`.toLowerCase();
-        return searchTerms.some(term => textBlob.includes(term));
-      });
-
-      if (exactMatches.length === 0) {
-        container.innerHTML = '<div class="no-result">لم يتم العثور على نتائج مطابقة للكلمة.</div>';
-        return;
-      }
-
-      container.innerHTML = exactMatches.map(item => `
-        <div class="result-card">
-          <div class="result-title">${item.title || 'بدون عنوان'}</div>
-          <div class="result-snippet">${item.snippet || item.content || ''}</div>
-          <div class="result-author">✍️ كاتب المعلومة: ${item.author || 'Zeno User'}</div>
-        </div>
-      `).join('');
     }
 
     // -------------------------------------------------------------
-    // 4. إضافة معلومات جديدة للقاعدة
+    // 4. إضافة معلومات جديدة للقاعدة (Supabase)
     // -------------------------------------------------------------
     async function addInformation() {
       const category = document.getElementById('new-category').value.trim();
@@ -611,7 +601,7 @@
     }
 
     // -------------------------------------------------------------
-    // 5. تشغيل Zeno AI الصوتي (ذاكرة المحادثة + عزل الصوت + النطق)
+    // 5. تشغيل Zeno AI الصوتي (عبر api/chat.js)
     // -------------------------------------------------------------
     const orb = document.getElementById('aiOrb');
     const aiStatus = document.getElementById('aiStatus');
@@ -759,7 +749,7 @@
                 try { recognition.start(); } catch(e) {}
             } else {
                 orb.className = "orb"; 
-                aiStatus.innerText = "اضغط على الكرة وتحدث...";
+                aiStatus.innerText = "اضغط على الكرة وابدأ الحديث...";
             }
         };
 
