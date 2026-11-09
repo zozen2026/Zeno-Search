@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zeno - Behavioral Protected & AI</title>
+  <!-- استدعاء مكتبة Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #ffffff; color: #111; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 40px 20px; position: relative; }
+
+    /* حاوية البروفايل في أعلى اليسار */
+    .profile-wrapper {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      z-index: 100;
+      cursor: pointer;
+    }
+    .profile-avatar-container {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background-color: #f97316;
+      padding: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(249, 115, 22, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .profile-avatar-container:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 14px rgba(249, 115, 22, 0.45);
+    }
+    .profile-avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background-color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .profile-avatar-img svg {
+      width: 28px;
+      height: 28px;
+      fill: #f97316;
+    }
+    .profile-name-text {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #333;
+      max-width: 90px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* القائمة المنبثقة عند الضغط على الحساب */
+    .profile-menu {
+      display: none;
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      background: #ffffff;
+      border: 1px solid #e4e4e7;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      width: 220px;
+      z-index: 100;
+      overflow: hidden;
+    }
+    .profile-menu .user-name-info {
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #f97316;
+      border-bottom: 1px solid #e4e4e7;
+      font-weight: bold;
+      display: none;
+    }
+    .profile-menu button {
+      width: 100%;
+      padding: 12px 14px;
+      background: transparent;
+      border: none;
+      color: #18181b;
+      text-align: right;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    .profile-menu button:hover { background: #f4f4f5; }
+
+    /* شعار Zeno مع الـ o البرتقالي */
+    .logo { 
+      font-size: 3.5rem; 
+      font-weight: 900; 
+      margin-bottom: 20px; 
+      letter-spacing: -1px; 
+      margin-top: 20px; 
+      color: #4285F4;
+    }
+    .logo span.o-orange { color: #f97316; }
+
+    /* قسم Zeno AI الصوتي والكرة النيون */
+    .zeno-ai-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+    .orb {
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb);
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
+      cursor: pointer;
+      transition: all 0.4s ease;
+    }
+    .orb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 30px rgba(249, 115, 22, 0.6);
+    }
+    .orb.listening {
+      background: radial-gradient(circle at 30% 30%, #fdba74, #f97316);
+      box-shadow: 0 0 35px #f97316, inset 0 0 15px #fff;
+      animation: pulse-orb 1.5s infinite;
+    }
+    .orb.speaking {
+      background: radial-gradient(circle at 30% 30%, #4ade80, #16a34a);
+      box-shadow: 0 0 35px #22c55e, inset 0 0 15px #fff;
+      animation: pulse-orb 0.8s infinite;
+    }
+    @keyframes pulse-orb {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+    .ai-status-text {
+      font-size: 0.9rem;
+      color: #52525b;
+      font-weight: bold;
+      min-height: 20px;
+      text-align: center;
+    }
+
+    .search-container { width: 100%; max-width: 600px; display: flex; gap: 10px; margin-bottom: 15px; }
+    input[type="text"], textarea { flex: 1; padding: 14px 20px; font-size: 1rem; border: 2px solid #e5e7eb; border-radius: 30px; outline: none; transition: border-color 0.2s; }
+    input[type="text"]:focus, textarea:focus { border-color: #f97316; }
+    
+    .btn { padding: 12px 24px; background-color: #111; color: #fff; border: 2px solid #111; border-radius: 30px; font-weight: bold; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .btn:hover { background-color: #f97316; border-color: #f97316; }
+    .btn:disabled { background-color: #d1d5db; border-color: #d1d5db; cursor: not-allowed; }
+
+    /* صندوق التحقق السلوكي الذكي */
+    .behavioral-check-box {
+      width: 100%;
+      max-width: 600px;
+      background: #f8fafc;
+      border: 2px dashed #4285F4;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.3s ease;
+    }
+    .behavioral-check-box.verified {
+      background: #f0fdf4;
+      border-color: #22c55e;
+      border-style: solid;
+    }
+    .check-info { display: flex; align-items: center; gap: 12px; }
+    .check-icon { font-size: 1.5rem; }
+    .check-text { font-size: 0.95rem; font-weight: 700; color: #111; }
+    .check-status { font-size: 0.85rem; color: #64748b; }
+
+    .add-toggle-btn { background: transparent; color: #4285F4; border: 1px dashed #4285F4; margin-bottom: 30px; }
+    .add-toggle-btn:hover { color: #fff; border-color: #f97316; background: #f97316; }
+
+    .add-box { display: none; width: 100%; max-width: 600px; background: #f8fafc; padding: 20px; border-radius: 16px; border: 2px solid #f97316; margin-bottom: 30px; flex-direction: column; gap: 12px; }
+    .add-box input, .add-box textarea { width: 100%; padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 12px; outline: none; font-size: 0.95rem; }
+    .add-box input:focus, .add-box textarea:focus { border-color: #f97316; }
+    .add-box textarea { resize: vertical; min-height: 80px; }
+
+    .results-container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; }
+    .result-card { background: #ffffff; border: 2px solid #111; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-right: 6px solid #f97316; }
+    .result-title { font-size: 1.1rem; font-weight: 700; color: #111; margin-bottom: 8px; }
+    .result-snippet { font-size: 0.95rem; color: #4b5563; line-height: 1.8; white-space: pre-wrap; word-break: break-word; margin-bottom: 12px; }
+    
+    .result-author {
+      font-size: 0.85rem;
+      color: #f97316;
+      font-weight: bold;
+      border-top: 1px solid #f3f4f6;
+      padding-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .no-result { text-align: center; color: #9ca3af; padding: 20px; }
+
+    /* النوافذ المنبثقة (Modals) */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-card {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 16px;
+      width: 320px;
+      border: 1px solid #e4e4e7;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .modal-card h3 { color: #f97316; text-align: center; font-size: 18px; }
+    .modal-card input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #d4d4d8;
+      background: #f4f4f5;
+      color: #18181b;
+      outline: none;
+    }
+    
+    .password-strength-indicator {
+      font-size: 12px;
+      margin-top: -6px;
+      margin-bottom: 2px;
+    }
+
+    .modal-card button.submit-btn {
+      padding: 10px;
+      background: #f97316;
+      color: #ffffff;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .modal-card button.submit-btn:hover { background: #ea580c; }
+    .modal-card .close-btn {
+      background: transparent;
+      color: #71717a;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* العلامة المائية الشفافة */
+    .watermark-nc {
+      position: fixed;
+      bottom: 15px;
+      left: 20px;
+      font-size: 13px;
+      color: #71717a;
+      opacity: 0.25;
+      pointer-events: none;
+      user-select: none;
+      z-index: 10;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- حاوية البروفايل واسم المستخدم -->
+  <div class="profile-wrapper" id="profile-icon" title="الملف الشخصي">
+    <div class="profile-avatar-container">
+      <div class="profile-avatar-img">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+      </div>
+    </div>
+    <span class="profile-name-text" id="display-account-name">زائر</span>
+
+    <!-- قائمة خيارات الحساب -->
+    <div class="profile-menu" id="profile-menu">
+      <div class="user-name-info" id="user-name-info"></div>
+      <button id="btn-show-login">تسجيل الدخول</button>
+      <button id="btn-show-signup">إنشاء حساب جديد</button>
+      <button id="btn-logout" style="display:none; color:#ef4444;">تسجيل الخروج</button>
+    </div>
+  </div>
+
+  <!-- شعار Zeno مع حرف o البرتقالي -->
+  <div class="logo">
+    Zen<span class="o-orange">o</span>
+  </div>
+
+  <!-- قسم Zeno AI الصوتي المتفاعل -->
+  <div class="zeno-ai-section">
+    <div class="orb" id="aiOrb" onclick="startZenoListening()" title="اضغط وتحدث مع Zeno AI"></div>
+    <div class="ai-status-text" id="aiStatus">اضغط على الكرة وتحدث...</div>
+  </div>
+
+  <div class="search-container">
+    <button class="btn" id="search-btn" disabled onclick="handleSearch()">Search</button>
+    <input type="text" id="search-input" placeholder="...Zeno Search" disabled onkeydown="if(event.key === 'Enter') handleSearch()">
+  </div>
+
+  <!-- نظام التحقق السلوكي الذكي -->
+  <div class="behavioral-check-box" id="security-box">
+    <div class="check-info">
+      <span class="check-icon" id="check-icon">🛡️</span>
+      <div>
+        <div class="check-text" id="check-title">جاري تحليل الأمان وسلوك التصفح...</div>
+        <div class="check-status" id="check-desc">حرك مؤشر الماوس أو تصفح قليلاً لتأكيد أنك بشر.</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn add-toggle-btn" onclick="toggleAddBox()">Add new information +</button>
+
+  <div class="add-box" id="add-box">
+    <input type="text" id="new-category" placeholder="التصنيف (category)">
+    <input type="text" id="new-title" placeholder="السؤال أو العنوان (title)">
+    <textarea id="new-snippet" placeholder="الإجابة أو التفاصيل (snippet)"></textarea>
+    <button class="btn" onclick="addInformation()">حفظ في قاعدة البيانات</button>
+  </div>
+
+  <div class="results-container" id="results-container">
+    <div class="no-result">يرجى تحريك الماوس وإتمام التحقق الذكي أولاً لبدء البحث...</div>
+  </div>
+
+  <!-- نافذة تسجيل الدخول -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="modal-card">
+      <h3>تسجيل الدخول - Zeno</h3>
+      <input type="text" id="login-username" placeholder="اسم المستخدم">
+      <input type="password" id="login-password" placeholder="كلمة المرور">
+      <button class="submit-btn" id="login-submit">دخول</button>
+      <button class="close-btn" id="login-close">إلغاء</button>
+    </div>
+  </div>
+
+  <!-- نافذة إنشاء حساب جديد -->
+  <div class="modal-overlay" id="signup-modal">
+    <div class="modal-card">
+      <h3>إنشاء حساب جديد - Zeno</h3>
+      <input type="text" id="signup-username" placeholder="اسم المستخدم (مثل: @user)">
+      <input type="text" id="signup-accountname" placeholder="اسم الحساب الظاهر">
+      <input type="password" id="signup-password" placeholder="كلمة المرور">
+      <div class="password-strength-indicator" id="strength-text">مستوى كلمة المرور: <span style="color:#71717a;">لم تكتب بعد</span></div>
+      <button class="submit-btn" id="signup-submit">إنشاء الحساب</button>
+      <button class="close-btn" id="signup-close">إلغاء</button>
+    </div>
+  </div>
+
+  <!-- العلامة المائية الشفافة -->
+  <div class="watermark-nc">From NC©</div>
+
+  <script>
+    // -------------------------------------------------------------
+    // التحقق التلقائي من الحساب
+    // -------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedUser = localStorage.getItem('zeno_current_user');
+      if (savedUser) {
+        try {
+          const userObj = JSON.parse(savedUser);
+          updateUIAuthState(userObj);
+        } catch (e) {
+          console.error("خطأ في قراءة بيانات المستخدم", e);
+        }
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 1. إعداد Supabase
+    // -------------------------------------------------------------
+    const SUPABASE_URL = "https://lzvtnfdgynwczrkwlwhf.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6dnRuZmRneW53Y3pya3dsd2hmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNDIxMTEsImV4cCI6MjEwNDcxODExMX0.w2hNlJ4SszyMBkUVjr1qiWNTTPxHMHkM9YOFtVP-pVI";
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // -------------------------------------------------------------
+    // 2. إدارة البروفايل والحسابات
+    // -------------------------------------------------------------
+    const profileIcon = document.getElementById('profile-icon');
+    const profileMenu = document.getElementById('profile-menu');
+    const userNameInfo = document.getElementById('user-name-info');
+    const loginModal = document.getElementById('login-modal');
+    const signupModal = document.getElementById('signup-modal');
+
+    profileIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileMenu.style.display = profileMenu.style.display === 'block' ? 'none' : 'block';
+    });
+
+    document.addEventListener('click', () => {
+      profileMenu.style.display = 'none';
+    });
+
+    document.getElementById('btn-show-login').onclick = () => { loginModal.style.display = 'flex'; };
+    document.getElementById('btn-show-signup').onclick = () => { signupModal.style.display = 'flex'; };
+    document.getElementById('login-close').onclick = () => { loginModal.style.display = 'none'; };
+    document.getElementById('signup-close').onclick = () => { signupModal.style.display = 'none'; };
+
+    // مقياس قوة كلمة المرور
+    const signupPasswordInput = document.getElementById('signup-password');
+    const strengthText = document.getElementById('strength-text');
+
+    signupPasswordInput.addEventListener('input', () => {
+      const pass = signupPasswordInput.value;
+      if (!pass) {
+        strengthText.innerHTML = 'مستوى كلمة المرور: <span style="color:#71717a;">لم تكتب بعد</span>';
+        return;
+      }
+
+      let score = 0;
+      if (pass.length >= 6) score++;
+      if (pass.length >= 8) score++;
+      if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score++;
+      if (/[0-9]/.test(pass)) score++;
+      if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+      if (score <= 2) {
+        strengthText.innerHTML = 'مستوى كلمة المرور: <span style="color:#ef4444; font-weight:bold;">ضعيف 🔴</span>';
+      } else if (score <= 4) {
+        strengthText.innerHTML = 'مستوى كلمة المرور: <span style="color:#f59e0b; font-weight:bold;">متوسط 🟡</span>';
+      } else {
+        strengthText.innerHTML = 'مستوى كلمة المرور: <span style="color:#22c55e; font-weight:bold;">قوي 🟢</span>';
+      }
+    });
+
+    // إنشاء حساب جديد
+    document.getElementById('signup-submit').onclick = async () => {
+      let username = document.getElementById('signup-username').value.trim();
+      let accountName = document.getElementById('signup-accountname').value.trim();
+      const password = document.getElementById('signup-password').value;
+
+      if(!username || !password) return alert('يرجى كتابة اسم المستخدم وكلمة المرور');
+      if(!accountName) accountName = username;
+
+      const { data: existing } = await supabaseClient
+        .from('accounts')
+        .select('*')
+        .eq('username', username);
+
+      if (existing && existing.length > 0) {
+        return alert('اسم المستخدم موجود مسبقاً، اختر اسماً آخر.');
+      }
+
+      const { data, error } = await supabaseClient
+        .from('accounts')
+        .insert([{
+          username: username,
+          account_name: accountName,
+          password: password,
+          language: 'ar'
+        }])
+        .select();
+
+      if (error) {
+        alert('خطأ في إنشاء الحساب: ' + error.message);
+      } else {
+        alert('تم إنشاء الحساب بنجاح!');
+        signupModal.style.display = 'none';
+        if (data && data[0]) {
+          localStorage.setItem('zeno_current_user', JSON.stringify(data[0]));
+          updateUIAuthState(data[0]);
+        }
+      }
+    };
+
+    // تسجيل الدخول
+    document.getElementById('login-submit').onclick = async () => {
+      let username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if(!username || !password) return alert('يرجى كتابة اسم المستخدم وكلمة المرور');
+
+      const { data, error } = await supabaseClient
+        .from('accounts')
+        .select('*')
+        .eq('username', username)
+        .eq('password', password);
+
+      if (error || !data || data.length === 0) {
+        alert('فشل تسجيل الدخول: اسم المستخدم أو كلمة المرور غير مطابقة تماماً.');
+      } else {
+        const userObj = data[0];
+        localStorage.setItem('zeno_current_user', JSON.stringify(userObj));
+        updateUIAuthState(userObj);
+        alert('أهلاً بك ' + (userObj.account_name || userObj.username) + '!');
+        loginModal.style.display = 'none';
+      }
+    };
+
+    document.getElementById('btn-logout').onclick = () => {
+      localStorage.removeItem('zeno_current_user');
+      updateUIAuthState(null);
+      alert('تم تسجيل الخروج بنجاح');
+    };
+
+    function updateUIAuthState(user) {
+      if (user) {
+        document.getElementById('display-account-name').innerText = user.account_name || user.username;
+        userNameInfo.textContent = `الحساب: ${user.account_name || user.username}`;
+        userNameInfo.style.display = 'block';
+        document.getElementById('btn-show-login').style.display = 'none';
+        document.getElementById('btn-show-signup').style.display = 'none';
+        document.getElementById('btn-logout').style.display = 'block';
+      } else {
+        document.getElementById('display-account-name').innerText = 'زائر';
+        userNameInfo.style.display = 'none';
+        document.getElementById('btn-show-login').style.display = 'block';
+        document.getElementById('btn-show-signup').style.display = 'block';
+        document.getElementById('btn-logout').style.display = 'none';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 3. التحقق السلوكي
+    // -------------------------------------------------------------
+    let isBehaviorVerified = false;
+    let mouseMovementsCount = 0;
+
+    document.addEventListener('mousemove', () => {
+      if (isBehaviorVerified) return;
+      
+      mouseMovementsCount++;
+      
+      if (mouseMovementsCount > 15) {
+        isBehaviorVerified = true;
+        
+        const box = document.getElementById('security-box');
+        box.classList.add('verified');
+        document.getElementById('check-icon').innerText = '✅';
+        document.getElementById('check-title').innerText = 'تم التحقق من أنك مستخدم حقيقي بنجاح!';
+        document.getElementById('check-desc').innerText = 'النظام يعمل بشكل آمن. يمكنك البحث الآن.';
+
+        document.getElementById('search-input').disabled = false;
+        document.getElementById('search-btn').disabled = false;
+        document.getElementById('results-container').innerHTML = '<div class="no-result">اكتب سؤالك واضغط بحث...</div>';
+      }
+    });
+
+    function toggleAddBox() {
+      const box = document.getElementById('add-box');
+      box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    // -------------------------------------------------------------
+    // 4. دالة البحث
+    // -------------------------------------------------------------
+    async function handleSearch() {
+      if (!isBehaviorVerified) return;
+
+      const rawQuery = document.getElementById('search-input').value.trim();
+      const container = document.getElementById('results-container');
+
+      if (!rawQuery) {
+        container.innerHTML = '<div class="no-result">الرجاء كتابة كلمة للبحث.</div>';
+        return;
+      }
+
+      container.innerHTML = '<div class="no-result">جاري البحث...</div>';
+
+      const stopWords = ['متى', 'ما', 'هل', 'من', 'أين', 'كيف', 'في', 'على', 'عن', 'الذي', 'التي', 'الى', 'و'];
+      const words = rawQuery.toLowerCase()
+                            .replace(/[؟,._?!]/g, '')
+                            .split(/\s+/)
+                            .map(w => w.trim())
+                            .filter(w => w.length >= 2 && !stopWords.includes(w));
+
+      const searchTerms = words.length > 0 ? words : [rawQuery.toLowerCase()];
+
+      const conditions = searchTerms.map(word => 
+        `title.ilike.%${word}%,snippet.ilike.%${word}%,content.ilike.%${word}%`
+      ).join(',');
+
+      const { data, error } = await supabaseClient
+        .from('information')
+        .select('*')
+        .or(conditions);
+
+      if (error) {
+        container.innerHTML = `<div class="no-result" style="color:red;">حدث خطأ: ${error.message}</div>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        container.innerHTML = '<div class="no-result">لم يتم العثور على مقالات تحتوي على هذه الكلمة.</div>';
+        return;
+      }
+
+      const exactMatches = data.filter(item => {
+        const textBlob = `${item.title || ''} ${item.snippet || ''} ${item.content || ''}`.toLowerCase();
+        return searchTerms.some(term => textBlob.includes(term));
+      });
+
+      if (exactMatches.length === 0) {
+        container.innerHTML = '<div class="no-result">لم يتم العثور على نتائج مطابقة للكلمة.</div>';
+        return;
+      }
+
+      container.innerHTML = exactMatches.map(item => `
+        <div class="result-card">
+          <div class="result-title">${item.title || 'بدون عنوان'}</div>
+          <div class="result-snippet">${item.snippet || item.content || ''}</div>
+          <div class="result-author">✍️ كاتب المعلومة: ${item.author || 'Zeno User'}</div>
+        </div>
+      `).join('');
+    }
+
+    // -------------------------------------------------------------
+    // 5. إضافة معلومات جديدة
+    // -------------------------------------------------------------
+    async function addInformation() {
+      const category = document.getElementById('new-category').value.trim();
+      const title = document.getElementById('new-title').value.trim();
+      const snippet = document.getElementById('new-snippet').value;
+
+      if (!title || !snippet) {
+        alert('الرجاء إدخال العنوان والتفاصيل.');
+        return;
+      }
+
+      const currentUser = JSON.parse(localStorage.getItem('zeno_current_user') || '{}');
+      const authorName = currentUser.account_name || currentUser.username || 'زائر';
+
+      const { error } = await supabaseClient
+        .from('information')
+        .insert([{
+          category,
+          title,
+          snippet,
+          author: authorName
+        }]);
+
+      if (error) {
+        alert('حدث خطأ أثناء الإضافة: ' + error.message);
+      } else {
+        alert('تمت إضافة المقال ونشره بنجاح!');
+        document.getElementById('new-category').value = '';
+        document.getElementById('new-title').value = '';
+        document.getElementById('new-snippet').value = '';
+        toggleAddBox();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 6. تشغيل Zeno AI الصوتي (ذاكرة المحادثة + عزل الصوت + تنظيف وتحسين النطق)
+    // -------------------------------------------------------------
+    const orb = document.getElementById('aiOrb');
+    const aiStatus = document.getElementById('aiStatus');
+
+    let conversationMessages = [
+        { 
+            role: "system", 
+            content: "أنت Zeno AI، مساعد ذكي وصديق مقرب جداً لمصطفى في مشروع Zeno Search. تحدث دائماً بطريقة بشرية طبيعية، ودودة، عفوية، ودافئة باللغة العربية الفصحى البسيطة والواضحة جداً لضمان صحة النطق الصوتي، وبدون تكلف. تنبيه مهم جداً: إذا سألك أي شخص عن من صنعك، أو من طورك، أو من أنشأك، أو من برمبك، فيجب أن تكون إجابتك دائماً وحرفياً هي: 'من طورني هو استوديو NC'." 
+        }
+    ];
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition;
+    let isListening = false;
+    let manualStop = false;
+    let isAISpeaking = false;
+    let currentUtterance = null;
+    let arabicVoice = null;
+
+    // جلب أفضل صوت عربي متاح في متصفح المستخدم لضمان صحة ووضوح النطق
+    function loadVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        // البحث عن صوت عربي سعودي أو أي صوت عربي متاح
+        arabicVoice = voices.find(v => v.lang === 'ar-SA' || v.lang.startsWith('ar')) || voices[0];
+    }
+
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'ar-SA';
+        recognition.continuous = true; 
+        recognition.interimResults = false;
+
+        recognition.onstart = () => {
+            if (!isAISpeaking) {
+                isListening = true;
+                orb.className = "orb listening";
+                aiStatus.innerText = "Zeno يستمع إليك الآن... (اضغط للإيقاف يدوياً)";
+            }
+        };
+
+        recognition.onresult = async (event) => {
+            if (isAISpeaking) return;
+
+            const userSpeech = event.results[event.results.length - 1][0].transcript;
+            aiStatus.innerText = "أنت: " + userSpeech;
+            
+            conversationMessages.push({ role: "user", content: userSpeech });
+            await askZenoServer();
+        };
+
+        recognition.onerror = (event) => {
+            console.log("خطأ في التعرف على الصوت:", event.error);
+        };
+
+        recognition.onend = () => {
+            if (isListening && !manualStop && !isAISpeaking) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.log("إعادة التشغيل التلقائي:", e);
+                }
+            } else if (!isAISpeaking && !isListening) {
+                orb.className = "orb";
+                aiStatus.innerText = "اضغط على الكرة وتحدث...";
+            }
+        };
+    }
+
+    function startZenoListening() {
+        if (!isBehaviorVerified) {
+            alert('يرجى إتمام التحقق السلوكي أولاً عبر تحريك الماوس!');
+            return;
+        }
+
+        if (!recognition) {
+            alert("متصفحك لا يدعم خاصية التعرف على الصوت.");
+            return;
+        }
+
+        if (isListening) {
+            manualStop = true;
+            isListening = false;
+            try {
+                recognition.stop();
+            } catch (e) {
+                console.log(e);
+            }
+            orb.className = "orb";
+            aiStatus.innerText = "تم إيقاف الاستماع يدوياً.";
+        } else {
+            manualStop = false;
+            try {
+                recognition.start();
+            } catch (e) {
+                console.log(e);
+            }
+        }
+    }
+
+    async function askZenoServer() {
+        aiStatus.innerText = "Zeno يفكر في الإجابة...";
+
+        try {
+            const response = await fetch('http://localhost:3000/api/chat', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ messages: conversationMessages })
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                console.error("خطأ من الخادم:", data);
+                aiStatus.innerText = data.error?.message || data.error || "عذراً، حدث خطأ في الطلب.";
+                return;
+            }
+            
+            if (data.choices && data.choices.length > 0) {
+                const aiReply = data.choices[0].message.content;
+                conversationMessages.push({ role: "assistant", content: aiReply });
+                speakZenoReply(aiReply);
+            } else {
+                aiStatus.innerText = "عذراً، لم تصل استجابة صحيحة من الخادم.";
+            }
+
+        } catch (err) {
+            console.error(err);
+            aiStatus.innerText = "فشل الاتصال بالخادم الوسيط (تأكد من تشغيل server.js)!";
+        }
+    }
+
+    // تنظيف متطور للنص لمنع تلعثم محرك النطق بسبب الرموز
+    function cleanTextForSpeech(text) {
+        return text
+            .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]|[\uD800-\uDBFF][\uDC00-\uDFFF])/g, '') // إزالة الإيموجي
+            .replace(/[#_*~`@$%^&+=<>|\\/[\]{}()]/g, ' ') // إزالة الرموز
+            .replace(/-/g, ' ') // تحويل الشرطات لمسافات لتجنب تهجئتها
+            .replace(/\s+/g, ' ') // توحيد المسافات
+            .trim();
+    }
+
+    // نطق الرد الصوتي بوضوح وتجنب النطق المكسر
+    function speakZenoReply(text) {
+        isAISpeaking = true; 
+
+        if (recognition) {
+            try { recognition.stop(); } catch(e) {}
+        }
+
+        aiStatus.innerText = "Zeno: " + text;
+
+        const cleanSpeechText = cleanTextForSpeech(text) || "أهلاً بك";
+
+        window.speechSynthesis.cancel();
+
+        currentUtterance = new SpeechSynthesisUtterance(cleanSpeechText);
+        currentUtterance.lang = 'ar-SA';
+        currentUtterance.rate = 0.95; // سرعة هادئة ومنتظمة لمنع تقطيع الحروف والنطق المكسر
+        currentUtterance.pitch = 1.0;  // نبرة طبيعية ومتوازنة
+
+        // تعيين أقوى صوت عربي متاح في المتصفح تلقائياً
+        if (!arabicVoice) {
+            loadVoices();
+        }
+        if (arabicVoice) {
+            currentUtterance.voice = arabicVoice;
+        }
+
+        currentUtterance.onstart = () => {
+            orb.className = "orb speaking"; 
+        };
+
+        currentUtterance.onend = () => {
+            isAISpeaking = false; 
+
+            if (isListening && !manualStop) {
+                orb.className = "orb listening";
+                aiStatus.innerText = "Zeno يستمع إليك الآن... (اضغط للإيقاف يدوياً)";
+                try {
+                    recognition.start(); 
+                } catch(e) {}
+            } else {
+                orb.className = "orb"; 
+                aiStatus.innerText = "اضغط على الكرة وتحدث...";
+            }
+        };
+
+        currentUtterance.onerror = (e) => {
+            console.error("خطأ في محرك الصوت:", e);
+            isAISpeaking, isAISpeaking = false;
+        };
+
+        window.speechSynthesis.speak(currentUtterance);
+    }
+  </script>
+</body>
+</html>
