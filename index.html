@@ -474,7 +474,7 @@
     }
 
     // -------------------------------------------------------------
-    // 3. دالة البحث الذكية (تستخرج الكلمات المفتاحية وتحضر النتائج دون أي تقنيات لـ Microsoft)
+    // 3. دالة البحث الذكية المحسنة (استخراج الكلمات المفتاحية وتحليل النتائج)
     // -------------------------------------------------------------
     async function handleSearch() {
       const rawQuery = document.getElementById('search-input').value.trim();
@@ -485,20 +485,20 @@
         return;
       }
 
-      container.innerHTML = '<div class="no-result">جاري البحث وتحليل المعلومات عبر Zeno...</div>';
+      container.innerHTML = '<div class="no-result">جاري البحث وتحليل المعلومات عبر Zeno Search...</div>';
 
       try {
         let results = [];
 
-        // استخراج الكلمة المفتاحية من السؤال (إزالة أدوات الاستفهام)
-        const stopWords = ['لماذا', 'ما هي', 'ما هو', 'كيف', 'من', 'أين', 'هل', 'في', 'على', 'عن', 'ما'];
+        // استخراج الكلمات الأساسية من أي سؤال طويل (إزالة أدوات الاستفهام والشوائب)
+        const stopWords = ['لماذا', 'ما هي', 'ما هو', 'كيف', 'من', 'أين', 'هل', 'في', 'على', 'عن', 'ما', 'لماذا'];
         let searchQuery = rawQuery;
         stopWords.forEach(w => {
           searchQuery = searchQuery.replace(new RegExp('\\b' + w + '\\b', 'g'), '');
         });
         searchQuery = searchQuery.trim() || rawQuery;
 
-        // البحث المستقل عبر واجهة الفهارس الحرة (Wikipedia العربية)
+        // البحث عبر ويكيبيديا العربية لجلب معلومات واقعية ودقيقة
         try {
           const wikiRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*`);
           const wikiData = await wikiRes.json();
@@ -513,19 +513,19 @@
             });
           }
         } catch (e) {
-          console.log("خطأ في جلب الفهارس:", e);
+          console.log("خطأ في جلب النتائج:", e);
         }
 
-        // نتيجة افتراضية توجيهية إذا كانت الكلمة فريدة
+        // إذا لم توجد نتائج مباشرة، نضيف بطاقة توجيهية ذكية
         if (results.length === 0) {
           results.push({
-            title: `نتائج Zeno Search لـ: ${rawQuery}`,
-            snippet: `تمت مراجعة المصادر المتاحة حول "${rawQuery}" عبر الشبكة الحرة. انقر لاستعراض التفاصيل.`,
+            title: `نتائج البحث عن: ${rawQuery}`,
+            snippet: `تمت مراجعة الفهارس والشبكة الحرة حول "${rawQuery}". استعرض المصادر المرتبطة مباشرة.`,
             url: `https://duckduckgo.com/?q=${encodeURIComponent(rawQuery)}`
           });
         }
 
-        // عرض النتائج ببطاقات Zeno الفاخرة وخالية تماماً من المنافسين
+        // عرض النتائج ببطاقات Zeno الفاخرة والخالية تماماً من المنافسين
         container.innerHTML = results.map(item => `
           <div class="result-card">
             <div class="result-title">
