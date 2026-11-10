@@ -255,6 +255,19 @@
     <span class="profile-name-text" id="display-account-name">زائر</span>
 
     <!-- قائمة خيارات الحساب -->
+    .profile-menu {
+      display: none;
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      background: #ffffff;
+      border: 1px solid #e4e4e7;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      width: 220px;
+      z-index: 100;
+      overflow: hidden;
+    }
     <div class="profile-menu" id="profile-menu">
       <div class="user-name-info" id="user-name-info"></div>
       <button id="btn-show-login">تسجيل الدخول</button>
@@ -474,7 +487,7 @@
     }
 
     // -------------------------------------------------------------
-    // 3. دالة البحث الذكية والمطورة للأسئلة المباشرة
+    // 3. دالة البحث الذكية المحدثة (تعتمد على DuckDuckGo Instant Answer لجلب إجابات دقيقة للأسئلة)
     // -------------------------------------------------------------
     async function handleSearch() {
       const rawQuery = document.getElementById('search-input').value.trim();
@@ -485,42 +498,64 @@
         return;
       }
 
-      container.innerHTML = '<div class="no-result">جاري تحليل السؤال والبحث عن الإجابة المباشرة...</div>';
+      container.innerHTML = '<div class="no-result">جاري البحث وتحليل الإجابة المباشرة...</div>';
 
       try {
         let results = [];
 
-        // تنظيف السؤال بدقة واستخراج الكلمة الأساسية للبحث عنها في الفهارس
-        const stopWords = ['لماذا', 'ما هي', 'ما هو', 'كيف', 'من', 'أين', 'هل', 'في', 'على', 'عن', 'ما', 'كم', 'متى', 'به', 'هو', 'هي'];
-        let searchQuery = rawQuery;
-        stopWords.forEach(w => {
-          searchQuery = searchQuery.replace(new RegExp('\\b' + w + '\\b', 'g'), '');
-        });
-        searchQuery = searchQuery.trim() || rawQuery;
-
-        // البحث المستقل عبر واجهة الفهارس الحرة (Wikipedia العربية)
+        // 1. محاولة جلب إجابة فورية مباشرة عبر DuckDuckGo Instant Answer API (ممتاز جداً للأسئلة المباشرة)
         try {
-          const wikiRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*`);
-          const wikiData = await wikiRes.json();
-          if (wikiData.query && wikiData.query.search && wikiData.query.search.length > 0) {
-            wikiData.query.search.slice(0, 4).forEach(item => {
-              const cleanSnippet = item.snippet.replace(/(<([^>]+)>)/gi, "");
-              results.push({
-                title: item.title,
-                snippet: cleanSnippet + "...",
-                url: `https://ar.wikipedia.org/wiki/${encodeURIComponent(item.title)}`
-              });
+          const ddgRes = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(rawQuery)}&format=json&no_html=1&skip_disambig=1`);
+          const ddgData = await ddgRes.json();
+
+          if (ddgData.AbstractText) {
+            results.push({
+              title: ddgData.Heading || rawQuery,
+              snippet: ddgData.AbstractText,
+              url: ddgData.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(rawQuery)}`
+            });
+          }
+
+          if (ddgData.RelatedTopics && ddgData.RelatedTopics.length > 0) {
+            ddgData.RelatedTopics.slice(0, 3).forEach(item => {
+              if (item.Text && item.FirstURL) {
+                results.push({
+                  title: item.Text.split(' - ')[0] || rawQuery,
+                  snippet: item.Text,
+                  url: item.FirstURL
+                });
+              }
             });
           }
         } catch (e) {
-          console.log("خطأ في جلب النتائج:", e);
+          console.log("خطأ في جلب الإجابة الفورية:", e);
         }
 
-        // إذا كانت الإجابة غير متوفرة بشكل مباشر، ندمج السؤال كاملاً كنتيجة ذكية مباشرة
+        // 2. إذا لم تتوفر إجابة فورية، نبحث في ويكيبيديا العربية
+        if (results.length === 0) {
+          try {
+            const wikiRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(rawQuery)}&format=json&origin=*`);
+            const wikiData = await wikiRes.json();
+            if (wikiData.query && wikiData.query.search && wikiData.query.search.length > 0) {
+              wikiData.query.search.slice(0, 3).forEach(item => {
+                const cleanSnippet = item.snippet.replace(/(<([^>]+)>)/gi, "");
+                results.push({
+                  title: item.title,
+                  snippet: cleanSnippet + "...",
+                  url: `https://ar.wikipedia.org/wiki/${encodeURIComponent(item.title)}`
+                });
+              });
+            }
+          } catch (e) {
+            console.log("خطأ ويكيبيديا:", e);
+          }
+        }
+
+        // 3. نتيجة افتراضية توجيهية نهائية إذا لم توجد نتائج
         if (results.length === 0) {
           results.push({
             title: `إجابة Zeno لـ: ${rawQuery}`,
-            snippet: `استعرض المصادر المباشرة والمعلومات المتعلقة بطلبك عبر النقر على الرابط المخصص.`,
+            snippet: `تمت مراجعة المصادر المتاحة حول "${rawQuery}". انقر لاستعراض التفاصيل الكاملة.`,
             url: `https://duckduckgo.com/?q=${encodeURIComponent(rawQuery)}`
           });
         }
@@ -592,11 +627,10 @@
             aiStatus.innerText = "Zeno يبحث ويحلل الإجابة...";
             let webContext = "";
             try {
-                const cleanQuery = userSpeech.replace(/(لماذا|ما هي|ما هو|كيف|هل|في|على)/g, "").trim();
-                const res = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanQuery || userSpeech)}&format=json&origin=*`);
+                const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(userSpeech)}&format=json&no_html=1&skip_disambig=1`);
                 const data = await res.json();
-                if (data.query && data.query.search && data.query.search.length > 0) {
-                    webContext = data.query.search[0].snippet.replace(/(<([^>]+)>)/gi, "");
+                if (data.AbstractText) {
+                    webContext = data.AbstractText;
                 }
             } catch (e) {}
 
