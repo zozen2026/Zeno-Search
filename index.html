@@ -474,7 +474,7 @@
     }
 
     // -------------------------------------------------------------
-    // 3. جلب معلومات الويب مباشرة في المتصفح وعرضها بأسلوب Zeno Search
+    // 3. دالة البحث الذكية (تستخرج الكلمات المفتاحية وتحضر النتائج دون أي تقنيات لـ Microsoft)
     // -------------------------------------------------------------
     async function handleSearch() {
       const rawQuery = document.getElementById('search-input').value.trim();
@@ -485,45 +485,47 @@
         return;
       }
 
-      container.innerHTML = '<div class="no-result">جاري البحث وجلب النتائج من شبكة الويب...</div>';
+      container.innerHTML = '<div class="no-result">جاري البحث وتحليل المعلومات عبر Zeno...</div>';
 
       try {
-        // جلب البيانات مباشرة من واجهة بحث عامة مدعومة بالمتصفح
-        const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(rawQuery)}&format=json&no_html=1&skip_disambig=1`;
-        const response = await fetch(searchUrl);
-        const data = await response.json();
-
         let results = [];
 
-        if (data.AbstractText) {
-          results.push({
-            title: data.Heading || rawQuery,
-            snippet: data.AbstractText,
-            url: data.AbstractURL || '#'
-          });
-        }
+        // استخراج الكلمة المفتاحية من السؤال (إزالة أدوات الاستفهام)
+        const stopWords = ['لماذا', 'ما هي', 'ما هو', 'كيف', 'من', 'أين', 'هل', 'في', 'على', 'عن', 'ما'];
+        let searchQuery = rawQuery;
+        stopWords.forEach(w => {
+          searchQuery = searchQuery.replace(new RegExp('\\b' + w + '\\b', 'g'), '');
+        });
+        searchQuery = searchQuery.trim() || rawQuery;
 
-        if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-          data.RelatedTopics.forEach(item => {
-            if (item.Text && item.FirstURL) {
+        // البحث المستقل عبر واجهة الفهارس الحرة (Wikipedia العربية)
+        try {
+          const wikiRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*`);
+          const wikiData = await wikiRes.json();
+          if (wikiData.query && wikiData.query.search && wikiData.query.search.length > 0) {
+            wikiData.query.search.slice(0, 5).forEach(item => {
+              const cleanSnippet = item.snippet.replace(/(<([^>]+)>)/gi, "");
               results.push({
-                title: item.Text.split(' - ')[0] || rawQuery,
-                snippet: item.Text,
-                url: item.FirstURL
+                title: item.title,
+                snippet: cleanSnippet + "...",
+                url: `https://ar.wikipedia.org/wiki/${encodeURIComponent(item.title)}`
               });
-            }
-          });
+            });
+          }
+        } catch (e) {
+          console.log("خطأ في جلب الفهارس:", e);
         }
 
+        // نتيجة افتراضية توجيهية إذا كانت الكلمة فريدة
         if (results.length === 0) {
           results.push({
-            title: `نتائج البحث عن: ${rawQuery}`,
-            snippet: `تمت مراجعة المصادر المتاحة لـ "${rawQuery}". استعرض التفاصيل عبر النقر على الرابط المخصص.`,
+            title: `نتائج Zeno Search لـ: ${rawQuery}`,
+            snippet: `تمت مراجعة المصادر المتاحة حول "${rawQuery}" عبر الشبكة الحرة. انقر لاستعراض التفاصيل.`,
             url: `https://duckduckgo.com/?q=${encodeURIComponent(rawQuery)}`
           });
         }
 
-        // عرض النتائج بتصميم بطاقات Zeno الفاخرة
+        // عرض النتائج ببطاقات Zeno الفاخرة وخالية تماماً من المنافسين
         container.innerHTML = results.map(item => `
           <div class="result-card">
             <div class="result-title">
@@ -536,12 +538,12 @@
 
       } catch (err) {
         console.error(err);
-        container.innerHTML = '<div class="no-result" style="color:red;">حدث خطأ أثناء جلب النتائج. حاول مرة أخرى.</div>';
+        container.innerHTML = '<div class="no-result" style="color:red;">حدث خطأ أثناء جلب النتائج. تحقق من اتصالك بالإنترنت.</div>';
       }
     }
 
     // -------------------------------------------------------------
-    // 4. تشغيل Zeno AI الصوتي (مع سحب معلومات الويب وإرسالها للذكاء الاصطناعي)
+    // 4. تشغيل Zeno AI الصوتي (مع سحب الويب والرد الذكي حصرياً لـ NC Studio)
     // -------------------------------------------------------------
     const orb = document.getElementById('aiOrb');
     const aiStatus = document.getElementById('aiStatus');
@@ -549,7 +551,7 @@
     let conversationMessages = [
         { 
             role: "system", 
-            content: "أنت Zeno AI، مساعد ذكي وصديق مقرب جداً لمصطفى في مشروع Zeno Search. تحدث دائماً بطريقة بشرية طبيعية، ودودة، عفوية باللغة العربية. إذا سألك أي شخص عن من صنعك أو طورك أو أنشأك، يجب أن تكون إجابتك حرفياً: 'من طورني هو استوديو NC'." 
+            content: "أنت Zeno AI، مساعد ذكي وصديق مقرب جداً لمصطفى في مشروع Zeno Search. تحدث دائماً بطريقة بشرية طبيعية، ودودة، وعفوية باللغة العربية الفصحى البسيطة. تنبيه صارم وحرفي: إذا سألك أي شخص عن من صنعك، أو من طورك، أو من أنشأك، أو من برمجك، فيجب أن تكون إجابتك دائماً وحرفياً هي: 'من طورني هو استوديو NC'." 
         }
     ];
 
@@ -587,18 +589,20 @@
             const userSpeech = event.results[event.results.length - 1][0].transcript;
             aiStatus.innerText = "أنت: " + userSpeech;
             
-            // جلب معلومات من الويب بناءً على كلام المستخدم لكي يجيب الذكاء الاصطناعي حسبها
-            aiStatus.innerText = "Zeno يبحث في الويب ليجيبك...";
+            // سحب معلومات الويب تلقائياً لتغذية الذكاء الاصطناعي بمعلومات حية
+            aiStatus.innerText = "Zeno يبحث في الويب ليجيبك بدقة...";
             let webContext = "";
             try {
-                const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(userSpeech)}&format=json&no_html=1&skip_disambig=1`);
-                const sData = await res.json();
-                if (sData.AbstractText) webContext = sData.AbstractText;
+                const res = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(userSpeech)}&format=json&origin=*`);
+                const data = await res.json();
+                if (data.query && data.query.search && data.query.search.length > 0) {
+                    webContext = data.query.search[0].snippet.replace(/(<([^>]+)>)/gi, "");
+                }
             } catch (e) {}
 
-            const promptMessage = webContext ? `سؤال المستخدم: ${userSpeech}\n\nمعلومات مسترجعة من الويب قدفيدك: ${webContext}` : userSpeech;
+            const finalPrompt = webContext ? `سؤال المستخدم: ${userSpeech}\n\nمعلومات حية مسترجعة من الويب: ${webContext}` : userSpeech;
 
-            conversationMessages.push({ role: "user", content: promptMessage });
+            conversationMessages.push({ role: "user", content: finalPrompt });
             await askZenoServer();
         };
 
@@ -663,7 +667,7 @@
 
         } catch (err) {
             console.error(err);
-            aiStatus.innerText = "فشل الاتصال بالخادم الوسيط!";
+            aiStatus.innerText = "فشل الاتصال بخادم الذكاء الاصطناعي!";
         }
     }
 
@@ -695,7 +699,7 @@
         currentUtterance.onend = () => {
             isAISpeaking = false; 
             if (isListening && !manualStop) {
-                orb.className, orb.className = "orb listening";
+                orb.className = "orb listening";
                 aiStatus.innerText = "Zeno يستمع إليك الآن...";
                 try { recognition.start(); } catch(e) {}
             } else {
