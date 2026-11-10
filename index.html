@@ -74,7 +74,7 @@
       white-space: nowrap;
     }
 
-    /* القائمة المنبثقة عند الضغط على الحساب */
+    /* القائمة المنبثقة عند الضغط على الحساب (تم تصحيح مكانها داخل الـ style) */
     .profile-menu {
       display: none;
       position: absolute;
@@ -243,7 +243,7 @@
 </head>
 <body>
 
-  <!-- حاوية البروفايل في أعلى اليسار -->
+  <!-- حاوية البروفايل واسم المستخدم -->
   <div class="profile-wrapper" id="profile-icon" title="الملف الشخصي">
     <div class="profile-avatar-container">
       <div class="profile-avatar-img">
@@ -255,19 +255,6 @@
     <span class="profile-name-text" id="display-account-name">زائر</span>
 
     <!-- قائمة خيارات الحساب -->
-    .profile-menu {
-      display: none;
-      position: absolute;
-      top: 80px;
-      left: 20px;
-      background: #ffffff;
-      border: 1px solid #e4e4e7;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      width: 220px;
-      z-index: 100;
-      overflow: hidden;
-    }
     <div class="profile-menu" id="profile-menu">
       <div class="user-name-info" id="user-name-info"></div>
       <button id="btn-show-login">تسجيل الدخول</button>
@@ -487,7 +474,7 @@
     }
 
     // -------------------------------------------------------------
-    // 3. دالة البحث الذكية المحدثة (تعتمد على DuckDuckGo Instant Answer لجلب إجابات دقيقة للأسئلة)
+    // 3. دالة البحث الذكية (تم تنقية وتصفية استعلامات الأسئلة للحصول على نتائج أدق)
     // -------------------------------------------------------------
     async function handleSearch() {
       const rawQuery = document.getElementById('search-input').value.trim();
@@ -498,12 +485,20 @@
         return;
       }
 
-      container.innerHTML = '<div class="no-result">جاري البحث وتحليل الإجابة المباشرة...</div>';
+      container.innerHTML = '<div class="no-result">جاري البحث وتحليل الإجابة...</div>';
 
       try {
         let results = [];
 
-        // 1. محاولة جلب إجابة فورية مباشرة عبر DuckDuckGo Instant Answer API (ممتاز جداً للأسئلة المباشرة)
+        // تنظيف الاستعلام الذكي للأسئلة الطويلة (استخراج الكلمة المفتاحية الأساسية مثل "الصلاة")
+        let searchQuery = rawQuery
+          .replace(/^(لماذا|ما هي|ما هو|كيف|هل|من|أين|متى|كم|ما)\s+/i, '')
+          .replace(/[\؟\?\!\,\.\:\;\-\_]/g, '')
+          .trim();
+
+        if (!searchQuery) searchQuery = rawQuery;
+
+        // البحث عبر DuckDuckGo Instant Answer لجلب إجابات مباشرة ومختصرة للأسئلة
         try {
           const ddgRes = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(rawQuery)}&format=json&no_html=1&skip_disambig=1`);
           const ddgData = await ddgRes.json();
@@ -515,26 +510,14 @@
               url: ddgData.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(rawQuery)}`
             });
           }
-
-          if (ddgData.RelatedTopics && ddgData.RelatedTopics.length > 0) {
-            ddgData.RelatedTopics.slice(0, 3).forEach(item => {
-              if (item.Text && item.FirstURL) {
-                results.push({
-                  title: item.Text.split(' - ')[0] || rawQuery,
-                  snippet: item.Text,
-                  url: item.FirstURL
-                });
-              }
-            });
-          }
         } catch (e) {
-          console.log("خطأ في جلب الإجابة الفورية:", e);
+          console.log("خطأ DuckDuckGo:", e);
         }
 
-        // 2. إذا لم تتوفر إجابة فورية، نبحث في ويكيبيديا العربية
+        // إذا لم توجد نتيجة مباشرة، نبحث باستخدام الكلمة المنظفة في ويكيبيديا
         if (results.length === 0) {
           try {
-            const wikiRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(rawQuery)}&format=json&origin=*`);
+            const wikiRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*`);
             const wikiData = await wikiRes.json();
             if (wikiData.query && wikiData.query.search && wikiData.query.search.length > 0) {
               wikiData.query.search.slice(0, 3).forEach(item => {
@@ -551,16 +534,16 @@
           }
         }
 
-        // 3. نتيجة افتراضية توجيهية نهائية إذا لم توجد نتائج
+        // نتيجة احتياطية إذا لم يتم العثور على شيء
         if (results.length === 0) {
           results.push({
             title: `إجابة Zeno لـ: ${rawQuery}`,
-            snippet: `تمت مراجعة المصادر المتاحة حول "${rawQuery}". انقر لاستعراض التفاصيل الكاملة.`,
+            snippet: `استعرض المصادر المتاحة حول هذا الموضوع مباشرة عبر محركنا الذكي.`,
             url: `https://duckduckgo.com/?q=${encodeURIComponent(rawQuery)}`
           });
         }
 
-        // عرض النتائج ببطاقات Zeno الفاخرة وخالية تماماً من أي منافسين
+        // عرض النتائج ببطاقات Zeno الفاخرة وخالية تماماً من المنافسين
         container.innerHTML = results.map(item => `
           <div class="result-card">
             <div class="result-title">
