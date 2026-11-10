@@ -175,10 +175,10 @@
     /* حاوية نتائج البحث الخاصة بـ Zeno */
     .results-container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 40px; }
     .result-card { background: #ffffff; border: 2px solid #111; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-right: 6px solid #f97316; }
-    .result-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .result-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; color: #111; }
     .result-title a { color: #4285F4; text-decoration: none; }
     .result-title a:hover { text-decoration: underline; }
-    .result-snippet { font-size: 0.95rem; color: #4b5563; line-height: 1.8; word-break: break-word; margin-bottom: 12px; }
+    .result-snippet { font-size: 0.98rem; color: #27272a; line-height: 1.8; word-break: break-word; margin-bottom: 12px; }
     .result-author { font-size: 0.85rem; color: #f97316; font-weight: bold; border-top: 1px solid #f3f4f6; padding-top: 8px; display: flex; align-items: center; gap: 5px; }
     .no-result { text-align: center; color: #9ca3af; padding: 20px; font-size: 0.95rem; }
 
@@ -243,7 +243,7 @@
 </head>
 <body>
 
-  <!-- حاوية البروفايل واسم المستخدم -->
+  <!-- حاوية البروفايل في أعلى اليسار -->
   <div class="profile-wrapper" id="profile-icon" title="الملف الشخصي">
     <div class="profile-avatar-container">
       <div class="profile-avatar-img">
@@ -282,7 +282,7 @@
 
   <!-- منطقة عرض نتائج البحث بأسلوب Zeno Search -->
   <div class="results-container" id="results-container">
-    <div class="no-result">اكتب ما تبحث عنه في الأعلى، وستظهر النتائج هنا بتصميم Zeno...</div>
+    <div class="no-result">اكتب سؤالك أو ما تبحث عنه في الأعلى، وستظهر الإجابة هنا فوراً...</div>
   </div>
 
   <!-- نافذة تسجيل الدخول -->
@@ -474,36 +474,36 @@
     }
 
     // -------------------------------------------------------------
-    // 3. دالة البحث الذكية المحسنة (استخراج الكلمات المفتاحية وتحليل النتائج)
+    // 3. دالة البحث الذكية والمطورة للأسئلة المباشرة
     // -------------------------------------------------------------
     async function handleSearch() {
       const rawQuery = document.getElementById('search-input').value.trim();
       const container = document.getElementById('results-container');
 
       if (!rawQuery) {
-        container.innerHTML = '<div class="no-result">الرجاء كتابة كلمة للبحث.</div>';
+        container.innerHTML = '<div class="no-result">الرجاء كتابة سؤال أو كلمة للبحث.</div>';
         return;
       }
 
-      container.innerHTML = '<div class="no-result">جاري البحث وتحليل المعلومات عبر Zeno Search...</div>';
+      container.innerHTML = '<div class="no-result">جاري تحليل السؤال والبحث عن الإجابة المباشرة...</div>';
 
       try {
         let results = [];
 
-        // استخراج الكلمات الأساسية من أي سؤال طويل (إزالة أدوات الاستفهام والشوائب)
-        const stopWords = ['لماذا', 'ما هي', 'ما هو', 'كيف', 'من', 'أين', 'هل', 'في', 'على', 'عن', 'ما', 'لماذا'];
+        // تنظيف السؤال بدقة واستخراج الكلمة الأساسية للبحث عنها في الفهارس
+        const stopWords = ['لماذا', 'ما هي', 'ما هو', 'كيف', 'من', 'أين', 'هل', 'في', 'على', 'عن', 'ما', 'كم', 'متى', 'به', 'هو', 'هي'];
         let searchQuery = rawQuery;
         stopWords.forEach(w => {
           searchQuery = searchQuery.replace(new RegExp('\\b' + w + '\\b', 'g'), '');
         });
         searchQuery = searchQuery.trim() || rawQuery;
 
-        // البحث عبر ويكيبيديا العربية لجلب معلومات واقعية ودقيقة
+        // البحث المستقل عبر واجهة الفهارس الحرة (Wikipedia العربية)
         try {
           const wikiRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*`);
           const wikiData = await wikiRes.json();
           if (wikiData.query && wikiData.query.search && wikiData.query.search.length > 0) {
-            wikiData.query.search.slice(0, 5).forEach(item => {
+            wikiData.query.search.slice(0, 4).forEach(item => {
               const cleanSnippet = item.snippet.replace(/(<([^>]+)>)/gi, "");
               results.push({
                 title: item.title,
@@ -516,16 +516,16 @@
           console.log("خطأ في جلب النتائج:", e);
         }
 
-        // إذا لم توجد نتائج مباشرة، نضيف بطاقة توجيهية ذكية
+        // إذا كانت الإجابة غير متوفرة بشكل مباشر، ندمج السؤال كاملاً كنتيجة ذكية مباشرة
         if (results.length === 0) {
           results.push({
-            title: `نتائج البحث عن: ${rawQuery}`,
-            snippet: `تمت مراجعة الفهارس والشبكة الحرة حول "${rawQuery}". استعرض المصادر المرتبطة مباشرة.`,
+            title: `إجابة Zeno لـ: ${rawQuery}`,
+            snippet: `استعرض المصادر المباشرة والمعلومات المتعلقة بطلبك عبر النقر على الرابط المخصص.`,
             url: `https://duckduckgo.com/?q=${encodeURIComponent(rawQuery)}`
           });
         }
 
-        // عرض النتائج ببطاقات Zeno الفاخرة والخالية تماماً من المنافسين
+        // عرض النتائج ببطاقات Zeno الفاخرة وخالية تماماً من أي منافسين
         container.innerHTML = results.map(item => `
           <div class="result-card">
             <div class="result-title">
@@ -543,7 +543,7 @@
     }
 
     // -------------------------------------------------------------
-    // 4. تشغيل Zeno AI الصوتي (مع سحب الويب والرد الذكي حصرياً لـ NC Studio)
+    // 4. تشغيل Zeno AI الصوتي (مع سحب الويب والرد الذكي المباشر)
     // -------------------------------------------------------------
     const orb = document.getElementById('aiOrb');
     const aiStatus = document.getElementById('aiStatus');
@@ -551,7 +551,7 @@
     let conversationMessages = [
         { 
             role: "system", 
-            content: "أنت Zeno AI، مساعد ذكي وصديق مقرب جداً لمصطفى في مشروع Zeno Search. تحدث دائماً بطريقة بشرية طبيعية، ودودة، وعفوية باللغة العربية الفصحى البسيطة. تنبيه صارم وحرفي: إذا سألك أي شخص عن من صنعك، أو من طورك، أو من أنشأك، أو من برمجك، فيجب أن تكون إجابتك دائماً وحرفياً هي: 'من طورني هو استوديو NC'." 
+            content: "أنت Zeno AI، مساعد ذكي وصديق مقرب جداً لمصطفى في مشروع Zeno Search. أجب عن أسئلة المستخدم بوضوح تام، وبطريقة بشرية طبيعية ومباشرة باللغة العربية. تنبيه صارم وحرفي: إذا سألك أي شخص عن من صنعك، أو من طورك، أو من أنشأك، أو من برمجك، فيجب أن تكون إجابتك دائماً وحرفياً هي: 'من طورني هو استوديو NC'." 
         }
     ];
 
@@ -589,18 +589,18 @@
             const userSpeech = event.results[event.results.length - 1][0].transcript;
             aiStatus.innerText = "أنت: " + userSpeech;
             
-            // سحب معلومات الويب تلقائياً لتغذية الذكاء الاصطناعي بمعلومات حية
-            aiStatus.innerText = "Zeno يبحث في الويب ليجيبك بدقة...";
+            aiStatus.innerText = "Zeno يبحث ويحلل الإجابة...";
             let webContext = "";
             try {
-                const res = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(userSpeech)}&format=json&origin=*`);
+                const cleanQuery = userSpeech.replace(/(لماذا|ما هي|ما هو|كيف|هل|في|على)/g, "").trim();
+                const res = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanQuery || userSpeech)}&format=json&origin=*`);
                 const data = await res.json();
                 if (data.query && data.query.search && data.query.search.length > 0) {
                     webContext = data.query.search[0].snippet.replace(/(<([^>]+)>)/gi, "");
                 }
             } catch (e) {}
 
-            const finalPrompt = webContext ? `سؤال المستخدم: ${userSpeech}\n\nمعلومات حية مسترجعة من الويب: ${webContext}` : userSpeech;
+            const finalPrompt = webContext ? `سؤال المستخدم: ${userSpeech}\n\nمعلومات حية مسترجعة للإجابة: ${webContext}` : userSpeech;
 
             conversationMessages.push({ role: "user", content: finalPrompt });
             await askZenoServer();
